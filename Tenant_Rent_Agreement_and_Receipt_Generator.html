@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tenant Rent Agreement and Monthly Rent Receipt Generator</title>
+<style>
+:root{--bg:#f4f5f7;--fg:#1c2330;--card:#fff;--bd:#cfd5df;--ac:#1f4f9e;--acfg:#fff;--er:#b3261e;--mut:#5a6578}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#10141c;--fg:#e6e9ef;--card:#1a212d;--bd:#36415a;--ac:#7fb0ff;--acfg:#0b1220;--er:#ff8a80;--mut:#9aa6bd}}
+:root[data-theme=dark]{--bg:#10141c;--fg:#e6e9ef;--card:#1a212d;--bd:#36415a;--ac:#7fb0ff;--acfg:#0b1220;--er:#ff8a80;--mut:#9aa6bd}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;font:16px/1.5 system-ui,Segoe UI,Roboto,sans-serif;background:var(--bg);color:var(--fg)}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;background:var(--card);border-bottom:1px solid var(--bd)}
+h1{font-size:1.15rem;margin:0}main{max-width:900px;margin:0 auto;padding:16px}
+.tabs{display:flex;gap:8px;margin-bottom:14px}
+button{font:inherit;cursor:pointer;border:1px solid var(--ac);background:var(--card);color:var(--ac);padding:9px 16px;border-radius:8px}
+button.p,.tabs [aria-selected=true]{background:var(--ac);color:var(--acfg)}
+:focus-visible{outline:3px solid var(--ac);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:16px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px}
+.f{display:flex;flex-direction:column;gap:3px}label,legend{font-weight:600}
+input,select,textarea{font:inherit;padding:9px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--fg);width:100%}
+input[aria-invalid=true],select[aria-invalid=true],textarea[aria-invalid=true]{border-color:var(--er);border-width:2px}
+.hint{color:var(--mut);font-size:.82rem}.err{color:var(--er);font-size:.86rem;min-height:1px}.req{color:var(--er)}
+.nav,.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.bar{height:8px;background:var(--bd);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;width:0;background:var(--ac);transition:width .2s}
+fieldset{border:1px solid var(--bd);border-radius:10px;margin:14px 0 0}
+.months{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:6px}
+.months label{font-weight:400;display:flex;gap:6px;align-items:center}.months input{width:auto}
+#total{font-weight:700;margin-top:10px;padding:10px;border-radius:8px;background:var(--bg)}
+.toast{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);background:var(--ac);color:var(--acfg);padding:8px 16px;border-radius:20px}
+.doc{background:#fff;color:#111;font:16px/1.65 Georgia,"Times New Roman",serif;padding:34px 38px;border:1px solid #bbb;margin-bottom:18px;box-shadow:0 2px 8px #0002}
+.doc h2{text-align:center;letter-spacing:.12em;margin:0 0 16px;font-size:1.3rem;text-decoration:underline}
+.doc ol li{margin-bottom:8px;text-align:justify}.doc p{text-align:justify}
+.meta{display:flex;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.sig{display:grid;grid-template-columns:1fr 1fr;gap:34px 30px;margin-top:40px}
+.line{border-top:1px solid #111;margin-bottom:4px;margin-top:38px}
+.foot{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;margin-top:20px}
+.stamp{width:120px;height:90px;border:2px dashed #555;display:flex;align-items:center;justify-content:center;text-align:center;font-size:.8rem;color:#555}
+.sigr{text-align:center;min-width:200px}
+.dn{font-size:.78rem;color:#555;margin-top:18px}
+@media(max-width:560px){.doc{padding:20px 16px}.sig{grid-template-columns:1fr}}
+@media print{body{background:#fff}.no-print{display:none!important}main{padding:0;max-width:none}
+.doc{border:0;box-shadow:none;padding:0;margin:0 0 18px}.receipt{border:1px solid #000;padding:18px;break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="top no-print"><h1>Tenant Rent Agreement &amp; Rent Receipt Generator</h1><button id="theme" type="button">Light / Dark</button></header>
+<main>
+<div class="tabs no-print" role="tablist" aria-label="Tools">
+<button role="tab" id="t1" aria-selected="true" aria-controls="p1" type="button">Rent Agreement</button>
+<button role="tab" id="t2" aria-selected="false" aria-controls="p2" type="button">HRA Rent Receipts</button></div>
+<section id="p1" role="tabpanel" aria-labelledby="t1">
+<div class="no-print"><p id="prog" aria-live="polite"></p><div class="bar"><i id="fill"></i></div></div>
+<div class="card no-print" id="wcard"><form id="wiz" novalidate><div id="steps"></div>
+<div class="nav"><button type="button" id="back">Back</button><button type="submit" class="p" id="next">Next</button></div></form>
+<p class="hint">Template for convenience only, not legal advice. Check stamp duty and registration rules of your state.</p></div>
+<div id="agOut" class="doc" hidden></div>
+<div id="agAct" class="actions no-print" hidden>
+<button class="p" type="button" data-print="agOut">Print / Save as PDF</button>
+<button type="button" data-copy="agOut">Copy text</button>
+<button type="button" id="edit">Edit details</button></div>
+</section>
+<section id="p2" role="tabpanel" aria-labelledby="t2" hidden>
+<div class="card no-print"><form id="rform" novalidate>
+<div class="nav" style="margin:0 0 12px"><button type="button" id="fill-ag">Fill from agreement</button></div>
+<div class="grid" id="rfields"></div>
+<fieldset><legend>Months paid <span class="req" aria-hidden="true">*</span></legend>
+<div class="months" id="months"></div>
+<div class="nav"><button type="button" id="all">Select all</button><button type="button" id="none">Clear</button></div>
+<span class="err" id="mErr" role="alert"></span></fieldset>
+<div id="total" aria-live="polite"></div>
+<div class="nav"><button type="submit" class="p">Generate receipts</button></div></form></div>
+<div id="rcOut"></div>
+<div id="rcAct" class="actions no-print" hidden>
+<button class="p" type="button" data-print="rcOut">Print / Save as PDF</button>
+<button type="button" data-copy="rcOut">Copy text</button></div>
+</section>
+<p class="no-print hint">Data stays in your browser. <button type="button" id="wipe" style="padding:2px 8px;font-size:.8rem">Clear saved data</button></p>
+</main>
+<div class="toast no-print" id="toast" role="status" hidden></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const inr=n=>Number(n).toLocaleString('en-IN',{maximumFractionDigits:2});
+const fmt=d=>d.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+const ON=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'],TN=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+function w(n){if(n<20)return ON[n];if(n<100)return TN[(n/10)|0]+(n%10?' '+ON[n%10]:'');
+for(const[d,s]of[[1e7,'Crore'],[1e5,'Lakh'],[1e3,'Thousand']])if(n>=d)return w(Math.floor(n/d))+' '+s+(n%d?' '+w(n%d):'');
+return ON[(n/100)|0]+' Hundred'+(n%100?' '+w(n%100):'')}
+function words(x){x=Math.round(x*100)/100;const r=Math.floor(x),p=Math.round((x-r)*100);
+return 'Rupees '+(r?w(r):'Zero')+(p?' and '+w(p)+' Paise':'')+' Only'}
+const STEPS=[
+{t:'Parties',f:[{id:'tName',l:'Tenant full name',r:1},{id:'tAddr',l:'Tenant permanent address',t:'textarea',r:1},{id:'lName',l:'Landlord full name',r:1},{id:'lAddr',l:'Landlord address',t:'textarea',r:1}]},
+{t:'Property',f:[{id:'pAddr',l:'Property address',t:'textarea',r:1},{id:'pType',l:'Property type',t:'select',o:['Residential flat / apartment','Independent house','Single room / PG','Commercial shop / office'],r:1},{id:'city',l:'City',r:1}]},
+{t:'Rent and terms',f:[{id:'rent',l:'Monthly rent (₹)',t:'number',min:1,r:1},{id:'dep',l:'Security deposit (₹)',t:'number',min:0,r:1},{id:'start',l:'Start date',t:'date',r:1},{id:'dur',l:'Duration (months)',t:'number',min:1,max:120,int:1,r:1,h:'11 months is common'},{id:'notice',l:'Notice period (days)',t:'number',min:1,max:365,int:1,r:1},{id:'incr',l:'Yearly rent increase (%)',t:'number',min:0,max:100,r:1,h:'Enter 0 for none'}]}];
+const now=new Date(),fy0=now.getMonth()>=3?now.getFullYear():now.getFullYear()-1;
+const FYS=[];for(let s=fy0-5;s<=fy0+1;s++)FYS.push(s+'-'+String(s+1).slice(2));
+const R=[{id:'rTenant',l:'Tenant name',r:1},{id:'rLandlord',l:'Landlord name',r:1},
+{id:'rPAN',l:'Landlord PAN',h:'Format: ABCDE1234F. Mandatory if annual rent exceeds ₹1,00,000.',x:'maxlength="10" autocapitalize="characters" autocomplete="off" spellcheck="false"'},
+{id:'rRent',l:'Monthly rent (₹)',t:'number',min:1,r:1},{id:'rAddr',l:'Property address',t:'textarea',r:1},
+{id:'rFY',l:'Financial year',t:'select',o:FYS,r:1},{id:'rMode',l:'Payment mode',t:'select',o:['Bank transfer (NEFT/IMPS)','UPI','Cheque','Cash'],r:1}];
+const SPEC={};[...STEPS.flatMap(s=>s.f),...R].forEach(f=>SPEC[f.id]=f);
+function fh(f){const a=`id="${f.id}" name="${f.id}" aria-describedby="${f.id}-h ${f.id}-e" ${f.x||''}`;let c;
+if(f.t==='textarea')c=`<textarea ${a} rows="2"></textarea>`;
+else if(f.t==='select')c=`<select ${a}>${f.o.map(o=>`<option>${o}</option>`).join('')}</select>`;
+else c=`<input ${a} type="${f.t||'text'}" ${f.t==='number'?`inputmode="decimal" step="any" min="${f.min}"`:''}>`;
+return `<div class="f"><label for="${f.id}">${f.l}${f.r?' <span class="req" aria-hidden="true">*</span>':''}</label>${c}<small class="hint" id="${f.id}-h">${f.h||''}</small><span class="err" id="${f.id}-e" role="alert"></span></div>`}
+$('#steps').innerHTML=STEPS.map((s,i)=>`<fieldset class="st" data-i="${i}"><legend>${s.t}</legend><div class="grid">${s.f.map(fh).join('')}</div></fieldset>`).join('');
+$('#rfields').innerHTML=R.map(fh).join('');
+const MN=['April','May','June','July','August','September','October','November','December','January','February','March'];
+$('#months').innerHTML=MN.map((m,i)=>`<label><input type="checkbox" class="mo" value="${i}">${m}</label>`).join('');
+function setErr(id,m){const e=$('#'+id);$('#'+id+'-e').textContent=m||'';e.setAttribute('aria-invalid',m?'true':'false')}
+const PANRE=/^[A-Z]{5}[0-9]{4}[A-Z]$/;
+function panMsg(){const p=$('#rPAN').value,a=(+$('#rRent').value||0)*12;
+if(!p)return a>100000?'PAN is mandatory because annual rent exceeds ₹1,00,000.':'';
+return PANRE.test(p)?'':'Invalid PAN. Use 5 capital letters, 4 digits, 1 capital letter (e.g., ABCDE1234F).'}
+function check(f){if(f.id==='rPAN')return panMsg();const v=$('#'+f.id).value.trim();
+if(f.r&&!v)return 'This field is required.';
+if(f.t==='number'&&v!==''){const n=+v;if(isNaN(n))return 'Enter a valid number.';
+if(f.min!=null&&n<f.min)return 'Must be at least '+f.min+'.';if(f.max!=null&&n>f.max)return 'Must be at most '+f.max+'.';
+if(f.int&&!Number.isInteger(n))return 'Enter a whole number.'}return ''}
+function run(list){let bad=null;list.forEach(f=>{const m=check(f);setErr(f.id,m);if(m&&!bad)bad=f.id});if(bad)$('#'+bad).focus();return !bad}
+let step=0;
+function show(i){step=i;$$('.st').forEach(s=>s.hidden=+s.dataset.i!==i);
+$('#wcard').hidden=i>2;$('#agOut').hidden=$('#agAct').hidden=i<3;
+$('#back').hidden=i===0;$('#next').textContent=i===2?'Generate agreement':'Next';
+$('#prog').textContent=i<3?`Step ${i+1} of 4: ${STEPS[i].t}`:'Step 4 of 4: Your agreement';
+$('#fill').style.width=(i+1)*25+'%';if(i===3)$('#agOut').innerHTML=agreement();
+else{const e=$$('.st')[i].querySelector('input,select,textarea');if(e&&document.activeElement.tagName==='BODY')e.focus()}}
+$('#wiz').addEventListener('submit',e=>{e.preventDefault();if(step>2)return;if(run(STEPS[step].f))show(step+1);});
+$('#back').onclick=()=>show(step-1);$('#edit').onclick=()=>show(2);
+const v=id=>$('#'+id).value.trim();
+function agreement(){const rent=+v('rent'),dep=+v('dep'),m=+v('dur'),inc=+v('incr'),n=v('notice'),city=v('city'),type=v('pType');
+const s=new Date(v('start')+'T00:00:00');let e=new Date(s.getFullYear(),s.getMonth()+m,s.getDate());if(e.getDate()!==s.getDate())e.setDate(0);e.setDate(e.getDate()-1);
+const com=/Commercial/.test(type),r2=Math.round(rent*(1+inc/100));
+const sg=(a,b)=>`<div><div class="line"></div>${a}<br>${b}</div>`;
+return `<h2>RENT AGREEMENT</h2>
+<p>This Rent Agreement is made on <b>${fmt(new Date())}</b> at <b>${esc(city)}</b> between <b>${esc(v('lName'))}</b>, residing at ${esc(v('lAddr'))} (the “Landlord”) and <b>${esc(v('tName'))}</b>, residing at ${esc(v('tAddr'))} (the “Tenant”).</p>
+<p>The Landlord is the owner of the ${esc(type.toLowerCase())} situated at ${esc(v('pAddr'))}, ${esc(city)} (the “Premises”) and has agreed to let it to the Tenant on the following terms:</p>
+<ol>
+<li><b>Term.</b> The tenancy is for <b>${m} month(s)</b>, starting on <b>${fmt(s)}</b> and ending on <b>${fmt(e)}</b>, and may be renewed by mutual written consent.</li>
+<li><b>Rent.</b> The Tenant shall pay monthly rent of <b>₹ ${inr(rent)}</b> (${words(rent)}) on or before the 5th day of each month.${inc>0?` The rent shall increase by <b>${inc}%</b> after every 12 months${m>12?` (₹ ${inr(r2)} per month from the second year)`:''}.`:' There is no yearly increase.'}</li>
+<li><b>Security deposit.</b> The Tenant has paid an interest-free refundable security deposit of <b>₹ ${inr(dep)}</b> (${words(dep)}), to be returned on vacating after adjusting any unpaid dues or damage beyond normal wear and tear.</li>
+<li><b>Notice period.</b> Either party may end this agreement by giving <b>${n} days</b>’ written notice. Rent is payable up to the date of vacating.</li>
+<li><b>Use.</b> The Premises shall be used only for ${com?'lawful commercial purposes':'residential purposes'}. The Tenant shall not sub-let or part with possession, and shall not carry out illegal activity or structural changes without written consent.</li>
+<li><b>Utilities.</b> The Tenant shall pay electricity, water, gas, internet and similar charges as per actual use, and maintenance charges where applicable, and keep the Premises in good condition.</li>
+<li><b>Vacating.</b> On expiry or termination the Tenant shall peacefully hand over vacant possession with all keys and fittings in the same condition, normal wear and tear excepted.</li>
+<li><b>General.</b> The Landlord may inspect the Premises at reasonable times with prior notice. Disputes are subject to the jurisdiction of courts at ${esc(city)}.</li></ol>
+<p>IN WITNESS WHEREOF the parties have signed this agreement on the date written above.</p>
+<div class="sig">${sg('<b>Landlord</b>',esc(v('lName')))}${sg('<b>Tenant</b>',esc(v('tName')))}
+${sg('<b>Witness 1</b>','Name:<br>Address:')}${sg('<b>Witness 2</b>','Name:<br>Address:')}</div>
+<p class="dn">Print on non-judicial stamp paper of the value required in your state, if applicable.</p>`}
+function monthsSel(){return $$('.mo:checked').map(c=>+c.value)}
+function updTotal(){const n=monthsSel().length,r=+$('#rRent').value||0,t=n*r;
+$('#total').innerHTML=n&&r?`${n} month(s) × ₹ ${inr(r)} = <b>₹ ${inr(t)}</b><br><small>${words(t)}</small>`:'Select the rent amount and months to see the total.';
+const a=r*12,h=$('#rPAN-h');h.textContent=a>100000?`Mandatory: annual rent (₹ ${inr(a)}) exceeds ₹1,00,000. Format: ABCDE1234F`:'Format: ABCDE1234F. Mandatory if annual rent exceeds ₹1,00,000.';
+if($('#rPAN').getAttribute('aria-invalid')==='true')setErr('rPAN',panMsg())}
+$('#all').onclick=()=>{$$('.mo').forEach(c=>c.checked=true);updTotal();save()};
+$('#none').onclick=()=>{$$('.mo').forEach(c=>c.checked=false);updTotal();save()};
+$('#fill-ag').onclick=()=>{[['rTenant','tName'],['rLandlord','lName'],['rRent','rent'],['rAddr','pAddr']].forEach(([a,b])=>{if(v(b))$('#'+a).value=v(b)});updTotal();save()};
+$('#rform').addEventListener('submit',e=>{e.preventDefault();
+let ok=run(R.filter(f=>f.id!=='rFY'&&f.id!=='rMode'));const ms=monthsSel();
+$('#mErr').textContent=ms.length?'':'Select at least one month.';if(!ms.length&&ok)$('.mo').focus();
+if(!ok||!ms.length)return;
+const fy=v('rFY'),s=+fy.slice(0,4),rent=+v('rRent'),pan=v('rPAN'),stamp=rent>5000;
+$('#rcOut').innerHTML=ms.sort((a,b)=>a-b).map(i=>{const mi=(3+i)%12,yr=i<9?s:s+1,d=new Date(yr,mi+1,0);
+const no=`RR/${fy}/${MN[i].slice(0,3).toUpperCase()}/${String(i+1).padStart(2,'0')}`;
+return `<article class="doc receipt"><h2>RENT RECEIPT</h2><div class="meta"><span>Receipt No: <b>${no}</b></span><span>Date: <b>${fmt(d)}</b></span></div>
+<p>Received with thanks from <b>${esc(v('rTenant'))}</b> a sum of <b>₹ ${inr(rent)}</b> (${words(rent)}) towards house rent for the month of <b>${MN[i]} ${yr}</b> (Financial Year ${fy}) for the property at ${esc(v('rAddr'))}. Payment mode: <b>${esc(v('rMode'))}</b>.</p>
+${pan?`<p>Landlord’s PAN: <b>${esc(pan)}</b></p>`:''}
+<div class="foot">${stamp?'<div class="stamp">Affix revenue<br>stamp here</div>':'<span></span>'}<div class="sigr"><div class="line"></div>Signature of Landlord<br><b>${esc(v('rLandlord'))}</b></div></div></article>`}).join('');
+$('#rcAct').hidden=false;$('#rcOut').scrollIntoView({behavior:'smooth'})});
+document.addEventListener('input',e=>{const t=e.target;if(!t.id)return;
+if(t.id==='rPAN'){t.value=t.value.toUpperCase().replace(/\s/g,'');if(t.value.length===10||t.getAttribute('aria-invalid')==='true')setErr('rPAN',panMsg())}
+else if(SPEC[t.id]&&t.getAttribute('aria-invalid')==='true')setErr(t.id,check(SPEC[t.id]));
+if(t.id==='rRent')updTotal();save()});
+$('#rPAN').addEventListener('blur',()=>setErr('rPAN',panMsg()));
+document.addEventListener('change',e=>{if(e.target.classList.contains('mo')){updTotal();$('#mErr').textContent='';save()}else save()});
+let tt;function say(m){const t=$('#toast');t.textContent=m;t.hidden=false;clearTimeout(tt);tt=setTimeout(()=>t.hidden=true,2200)}
+$$('[data-print]').forEach(b=>b.onclick=()=>window.print());
+$$('[data-copy]').forEach(b=>b.onclick=async()=>{const txt=$('#'+b.dataset.copy).innerText;
+try{await navigator.clipboard.writeText(txt);say('Copied to clipboard')}catch(_){
+const a=document.createElement('textarea');a.value=txt;document.body.appendChild(a);a.select();
+try{document.execCommand('copy');say('Copied to clipboard')}catch(__){say('Copy failed. Select the text and copy manually.')}a.remove()}});
+function tab(n){[1,2].forEach(i=>{$('#p'+i).hidden=i!==n;$('#t'+i).setAttribute('aria-selected',i===n)})}
+$('#t1').onclick=()=>tab(1);$('#t2').onclick=()=>tab(2);
+const KEY='rentgen.v1';
+function save(){try{const d={};$$('input[id],select[id],textarea[id]').forEach(e=>d[e.id]=e.value);d.months=monthsSel();localStorage.setItem(KEY,JSON.stringify(d))}catch(e){}}
+function load(){try{const d=JSON.parse(localStorage.getItem(KEY)||'{}');for(const k in d){const e=document.getElementById(k);if(e&&k!=='months'&&e.tagName!=='BUTTON')e.value=d[k]}
+(d.months||[]).forEach(m=>{const c=$('.mo[value="'+m+'"]');if(c)c.checked=true})}catch(e){}}
+$('#wipe').onclick=()=>{try{localStorage.removeItem(KEY)}catch(e){}location.reload()};
+$('#theme').onclick=()=>{const r=document.documentElement,d=r.dataset.theme?r.dataset.theme==='dark':matchMedia('(prefers-color-scheme:dark)').matches;
+r.dataset.theme=d?'light':'dark';try{localStorage.setItem('rentgen.theme',r.dataset.theme)}catch(e){}};
+try{const t=localStorage.getItem('rentgen.theme');if(t)document.documentElement.dataset.theme=t}catch(e){}
+$('#rFY').value=fy0+'-'+String(fy0+1).slice(2);
+load();if(!$('#rFY').value)$('#rFY').value=fy0+'-'+String(fy0+1).slice(2);
+updTotal();show(0);
+</script>
+</body>
+</html>
